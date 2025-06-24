@@ -1,0 +1,57 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+// Looking for ways to speed up your queries, or scale easily with your serverless or edge functions?
+// Try Prisma Accelerate: https://pris.ly/cli/accelerate-init
+
+generator client {
+  provider = "prisma-client-js"
+  output   = "../src/generated/prisma"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+
+
+model User {
+  id        String    @id @default(uuid())
+  email     String    @unique
+  name      String?
+  password  String // Store hashed passwords!
+ 
+}
+
+model Zap {
+  id        String    @id @default(uuid())
+  trigger   Trigger?  
+  triggerId String?   @unique // One-to-one relationship with Trigger
+  actions   Action[] // Will define this later
+}
+
+model AvailableTrigger {
+  id          String    @id @default(uuid())
+  name        String    @unique // e.g., "Webhook", "GitHub", "Google Sheets"
+  triggers    Trigger[]
+}
+
+model Trigger {
+  id                String           @id @default(uuid())
+  zapId             String           @unique // One-to-one relationship with Zap
+  zap               Zap              @relation(fields: [zapId], references: [id], onDelete: Cascade)
+  availableTriggerId String
+  availableTrigger  AvailableTrigger @relation(fields: [availableTriggerId], references: [id])
+  // We'll add more fields here later to store specific trigger configuration
+  // For example, for a webhook trigger, you might store its unique secret key.
+}
+
+model Action {
+    id          String @id @default(uuid())
+    zapId       String
+    zap         Zap    @relation(fields: [zapId], references: [id])
+    order       Int // To define the order of actions
+    // type        String // e.g., "Email", "Slack", "HTTP Request"
+    // config      Json // JSON field to store action-specific configuration
+}
