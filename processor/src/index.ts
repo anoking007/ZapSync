@@ -1,5 +1,5 @@
 import { PrismaClient } from '@prisma/client';
-import { Kafka } from 'kafkajs';
+import { Kafka, Partitioners} from 'kafkajs';
 
 const prisma = new PrismaClient();
 
@@ -9,7 +9,9 @@ const kafka = new Kafka({
   brokers: ['localhost:9092'] // Kafka broker running on localhost:9092
 });
 
-const producer = kafka.producer();
+const producer = kafka.producer({
+  createPartitioner: Partitioners.LegacyPartitioner, // ✅ This fixes the warning
+});
 const TOPIC_NAME = 'zap-events'; // Name of the Kafka topic we created
 
 async function main() {
