@@ -1,0 +1,3 @@
+-- AlterTable
+ALTER TABLE "Zap" ADD COLUMN     "isEnabled" BOOLEAN NOT NULL DEFAULT true,
+ADD COLUMN     "name" TEXT NOT NULL DEFAULT '';

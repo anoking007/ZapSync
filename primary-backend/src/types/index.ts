@@ -17,6 +17,16 @@ export const signinData = z.object({
     password: z.string().min(6),     // Minimum 6 characters
 });
 
+export const zapCreateSchema = z.object({
+    availableTriggerId: z.string(), // CHANGED: No .uuid()
+    triggerMetadata: z.record(z.any()).optional(),
+
+    actions: z.array(z.object({
+        availableActionId: z.string(), // CHANGED: No .uuid()
+        actionMetadata: z.record(z.any()).optional(),
+    })),
+});
 // You might also export the inferred types for TS:
 export type SignupInput = z.infer<typeof signupData>;
 export type SigninInput = z.infer<typeof signinData>;
+export type zapInput= z.infer<typeof zapCreateSchema>;

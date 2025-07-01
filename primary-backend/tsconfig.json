@@ -2,16 +2,18 @@
   "compilerOptions": {
     "target": "es2016",
     "module": "commonjs",
-    "rootDir": "./src",
+    "rootDir": "./", // 🚨 THIS IS THE CRUCIAL CHANGE: From "./src" to "./" 🚨
     "outDir": "./dist",
     "esModuleInterop": true,
     "forceConsistentCasingInFileNames": true,
     "strict": true,
-    "skipLibCheck": true
+    "skipLibCheck": true,
+    "types": ["node"]
   },
   "include": [
-    "src",                        // ✅ Include all your source code
-    "src/types/**/*.d.ts"         // ✅ Include your custom type augmentations
+    "src",
+    "src/types/**/*.d.ts",
+    "prisma/**/*.ts"
   ],
   "exclude": [
     "node_modules",
