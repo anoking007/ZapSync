@@ -1,83 +1,82 @@
+// processor/src/index.ts
+
 import { PrismaClient } from '@prisma/client';
-import { Kafka, Partitioners} from 'kafkajs';
+import { Kafka, Partitioners } from 'kafkajs';
 
 const prisma = new PrismaClient();
 
-// Kafka setup
 const kafka = new Kafka({
   clientId: 'outbox-processor',
-  brokers: ['localhost:9092'] // Kafka broker running on localhost:9092
+  brokers: ['localhost:9092'],
 });
 
 const producer = kafka.producer({
-  createPartitioner: Partitioners.LegacyPartitioner, // ✅ This fixes the warning
+  createPartitioner: Partitioners.LegacyPartitioner,
 });
-const TOPIC_NAME = 'zap-events'; // Name of the Kafka topic we created
+
+const TOPIC_NAME = 'zap-events';
 
 async function main() {
-  console.log("Outbox Processor started...");
-  await producer.connect(); // Connect Kafka producer once
+  console.log("Zap Outbox Processor started...");
+  await producer.connect();
 
   while (true) {
     try {
-      // 1. Poll for pending rows from the ZapRunOutbox table
-      const pendingRows = await prisma.zapRunOutbox.findMany({
+      // 1. Find unprocessed ZapRunOutbox rows
+      const zapRuns = await prisma.zapRunOutbox.findMany({
         where: {
-          processed: false // Only pick unprocessed events
+          processed: false,
         },
-        take: 10, // Limit to 10 rows per iteration to avoid overwhelming Kafka/memory
+        take: 10,
         orderBy: {
-          createdAt: 'asc' // Process older events first
-        }
+          createdAt: 'asc',
+        },
       });
 
-      if (pendingRows.length > 0) {
-        console.log(`Found ${pendingRows.length} pending outbox entries.`);
+      if (zapRuns.length > 0) {
+        console.log(`Found ${zapRuns.length} unprocessed zap runs.`);
 
-        // 2. Map pending rows to Kafka messages
-        const messages = pendingRows.map(row => ({
-          value: JSON.stringify(row.payload), // Kafka message value should be a string
-          key: row.zapRunId // Use zapRunId as key for partitioning (optional but good practice)
+        const messages = zapRuns.map((run) => ({
+          value: JSON.stringify({
+            zapRunId: run.zapRunId,
+            stage: 0, // ✅ important: worker expects this format
+          }),
+          key: run.zapRunId,
         }));
 
-        // 3. Publish messages to Kafka
         await producer.send({
           topic: TOPIC_NAME,
           messages: messages,
         });
-        console.log(`Published ${messages.length} messages to Kafka topic '${TOPIC_NAME}'.`);
 
-        // 4. Delete processed entries from the Outbox table
-        // Use deleteMany with an `in` clause for the IDs
-        const deletedCount = await prisma.zapRunOutbox.deleteMany({
+        console.log(`Published ${messages.length} zap runs to Kafka.`);
+
+        // 2. Mark the zap runs as processed (DON’T DELETE if worker needs retry later)
+        await prisma.zapRunOutbox.updateMany({
           where: {
             id: {
-              in: pendingRows.map(row => row.id)
-            }
-          }
+              in: zapRuns.map((row) => row.id),
+            },
+          },
+          data: {
+            processed: true,
+          },
         });
-        console.log(`Deleted ${deletedCount.count} processed entries from ZapRunOutbox.`);
-      } else {
-        // console.log("No pending outbox entries found. Waiting...");
+
+        console.log(`Marked ${zapRuns.length} zap runs as processed.`);
       }
 
-      // Wait for a short period before polling again
-      await new Promise(resolve => setTimeout(resolve, 5000)); // Poll every 5 seconds
+      await new Promise((resolve) => setTimeout(resolve, 5000));
     } catch (error) {
-      console.error('Error in outbox processor loop:', error);
-      // Implement robust error handling:
-      // - Log the error details.
-      // - Potentially mark rows as 'failed_to_publish' instead of deleting immediately.
-      // - Implement dead-letter queues.
-      // - Add exponential backoff for retries.
-      await new Promise(resolve => setTimeout(resolve, 10000)); // Wait longer on error
+      console.error('Error in Zap Outbox Processor:', error);
+      await new Promise((resolve) => setTimeout(resolve, 10000));
     }
   }
 }
 
 main()
   .catch(async (e) => {
-    console.error('Processor experienced a fatal error:', e);
+    console.error('Fatal error in processor:', e);
     await producer.disconnect();
     await prisma.$disconnect();
     process.exit(1);

@@ -2,7 +2,7 @@ import express from 'express';
 import { PrismaClient } from '@prisma/client'; // Import PrismaClient
 
 const app = express();
-const PORT = process.env.PORT || 3000;
+const PORT = process.env.PORT || 3002;
 const prisma = new PrismaClient(); // Initialize Prisma Client
 
 app.use(express.json());

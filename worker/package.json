@@ -4,19 +4,22 @@
   "description": "",
   "main": "index.js",
   "scripts": {
-    "start": "ts-node-dev --respawn src/index.ts",
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "dev": "tsc -b && node dist/index.js"
   },
   "keywords": [],
   "author": "",
   "license": "ISC",
   "dependencies": {
-    "@prisma/client": "^6.10.1",
-    "kafkajs": "^2.2.4"
+    "@prisma/client": "^5.17.0",
+    "@solana/web3.js": "^1.95.1",
+    "@types/bs58": "^4.0.4",
+    "@types/nodemailer": "^6.4.15",
+    "bs58": "^6.0.0",
+    "dotenv": "^16.4.5",
+    "kafkajs": "^2.2.4",
+    "nodemailer": "^6.9.14"
   },
   "devDependencies": {
-    "prisma": "^6.10.1",
-    "ts-node-dev": "^2.0.0",
-    "typescript": "^5.8.3"
+    "prisma": "^5.17.0"
   }
 }
